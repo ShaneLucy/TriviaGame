@@ -1,4 +1,4 @@
-FROM python:3.9-rc-alpine
+FROM python:3.7-alpine
 
 ENV PYTHONUBBUFFERED 1
 
