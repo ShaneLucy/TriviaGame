@@ -8,6 +8,8 @@ RUN apk update --no-cache
 RUN apk add --no-cache --virtual .tmp-build-deps \
         gcc postgresql-dev  \
         musl-dev python3-dev
+RUN apk add build-base py-pip jpeg-dev zlib-dev
+ENV LIBRARY_PATH=/lib:/usr/lib
 
 RUN pip install -r /requirements.txt
 
