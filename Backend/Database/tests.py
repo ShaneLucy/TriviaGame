@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from .models import *
+from Database.models import *
 from django.db import IntegrityError, transaction
 
 
@@ -18,7 +18,7 @@ class CustomUserModelTests(TestCase):
         self.password = 'password123'
 
     def test_create_user(self):
-        """Test that a user will be created when valid 
+        """Test that a user will be created when valid
         credentials are provided"""
         user = get_user_model().objects.create_user(
             username=self.username,
@@ -96,7 +96,7 @@ class CustomUserModelTests(TestCase):
     def test_email_is_normalised(self):
         """Test that emails are normalised"""
         email = 'fakemail@PROTONMAIL.com'
-        user = get_user_model().objects.create_user(
+        get_user_model().objects.create_user(
             username=self.username,
             email=email
         )
@@ -116,7 +116,7 @@ class CustomUserModelTests(TestCase):
 
     def test_delete_user(self):
         """Test that a users account can be deleted"""
-        user = get_user_model().objects.create_user(
+        get_user_model().objects.create_user(
             username=self.username,
             email=self.email,
             password=self.password
@@ -131,7 +131,7 @@ class CustomUserModelTests(TestCase):
 
     def test_delete_superuser(self):
         """Test that a superuser can be deleted"""
-        user = get_user_model().objects.create_superuser(
+        get_user_model().objects.create_superuser(
             username=self.username,
             email=self.email,
             password=self.password
@@ -144,7 +144,7 @@ class CustomUserModelTests(TestCase):
         self.assertEqual(get_user_model().objects.count(), 0)
 
     def test_username_is_returned(self):
-        """Test that a users username is returned as the objects 
+        """Test that a users username is returned as the objects
         string reprsentation instead of the email address"""
         user = get_user_model().objects.create_user(
             username=self.username,
