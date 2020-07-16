@@ -34,7 +34,8 @@ def get_sentinel_user():
     with all foreign key references to a user if they delete their
     account """
     return get_user_model().objects.get_or_create(username='Deleted',
-                                                  email='deleted@gmail.com')
+                                                  email='deleted@gmail.com'
+                                                  )[0]
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
@@ -49,7 +50,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     avatar = models.ImageField(blank=True, null=True)
     date_joined = models.DateTimeField(default=timezone.now)
     last_updated = models.DateTimeField(blank=True, null=True)
-    is_active = models.BooleanField(default=False)
+    is_logged = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -84,23 +86,28 @@ class Answers(models.Model):
     objects = models.Manager()
 
     def __str__(self):
-        return self.question
+        return self.correct_answer
 
 
 class UserAnswers(models.Model):
     """Creates a model for a users answers to questions"""
+    RESULT = (
+        ('correct', 'correct'),
+        ('incorrect', 'incorrect')
+    )
+
     id = models.BigAutoField(primary_key=True)
-    user_id = models.ForeignKey(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
-    question_id = models.ForeignKey(
+    question = models.ForeignKey(
         Questions,
         on_delete=models.CASCADE,
     )
-    result = models.BooleanField(default=False)
-    count_correct = models.SmallIntegerField()
-    count_incorrect = models.SmallIntegerField(blank=True)
+    result = models.CharField(max_length=10, choices=RESULT)
+    count_correct = models.SmallIntegerField(default=0)
+    count_incorrect = models.SmallIntegerField(default=0)
 
     objects = models.Manager()
 
@@ -111,18 +118,18 @@ class UserAnswers(models.Model):
 class UserRelationships(models.Model):
     """Creates a model for recording relationships between users"""
     RELATIONSHIP_STATUS = (
-        ('pending', 'Pending'),
-        ('friends', 'Friends'),
-        ('blocked', 'Blocked')
+        ('pending', 'pending'),
+        ('friends', 'friends'),
+        ('blocked', 'blocked')
     )
 
     id = models.BigAutoField(primary_key=True)
-    user_first_id = models.ForeignKey(
+    user_first = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='user_first_id',
     )
-    user_second_id = models.ForeignKey(
+    user_second = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='user_second_id',
@@ -139,12 +146,12 @@ class UserRelationships(models.Model):
 class LoginAttempts(models.Model):
     """Creates a model to record a users login activity"""
     LOGIN_STATUS = (
-        ('failed', 'Failed'),
+        ('failed', 'failed'),
         ('success', 'success')
     )
 
     id = models.BigAutoField(primary_key=True)
-    user_id = models.ForeignKey(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
@@ -160,57 +167,65 @@ class LoginAttempts(models.Model):
 class Practice(models.Model):
     """Creates a model to record a users practice matches"""
     id = models.BigAutoField(primary_key=True)
-    user_id = models.ForeignKey(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
     score = models.SmallIntegerField()
     start_time = models.DateTimeField(default=timezone.now)
-    time_taken = models.TimeField()
+    time_taken_seconds = models.CharField(max_length=10)
 
     objects = models.Manager()
 
     def __str__(self):
-        return self.score
+        return '%s' % (self.score)
 
 
 class Results(models.Model):
     """Creates a model to record results for every match"""
     id = models.BigAutoField(primary_key=True)
-    winner_id = models.ForeignKey(
+    winner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET(get_sentinel_user),
         related_name='winner_id',
     )
-    second_place_id = models.ForeignKey(
+    second_place = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET(get_sentinel_user),
         related_name='second_place_id',
     )
-    third_place_id = models.ForeignKey(
+    third_place = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET(get_sentinel_user),
         related_name='third_place_id',
+        blank=True,
+        null=True,
     )
-    fourth_place_id = models.ForeignKey(
+    fourth_place = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET(get_sentinel_user),
         related_name='fourth_place_id',
+        blank=True,
+        null=True,
     )
-    fifth_place_id = models.ForeignKey(
+    fifth_place = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET(get_sentinel_user),
         related_name='fifth_place_id',
+        blank=True,
+        null=True,
     )
-    sixth_place_id = models.ForeignKey(
+    sixth_place = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET(get_sentinel_user),
         related_name='sixth_place_id',
+        blank=True,
+        null=True,
     )
     objects = models.Manager()
 
     def __str__(self):
-        return self.winner_id
+        return '%s' % self.winner
 
 
 class SuddenDeath(models.Model):
@@ -221,7 +236,7 @@ class SuddenDeath(models.Model):
     objects = models.Manager()
 
     def __str__(self):
-        return self.rounds
+        return '%s' % self.rounds
 
 
 class Games(models.Model):
@@ -251,7 +266,7 @@ class Games(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET(get_sentinel_user),
     )
-    result_id = models.ForeignKey(
+    winner = models.ForeignKey(
         Results, on_delete=models.CASCADE, null=True, blank=True)
     sudden_death_id = models.ForeignKey(
         SuddenDeath, on_delete=models.CASCADE, null=True, blank=True)
@@ -259,23 +274,22 @@ class Games(models.Model):
     objects = models.Manager()
 
     def __str__(self):
-        return self.created_by
+        return '%s' % self.winner
 
 
 class UserScores(models.Model):
     """Creates a model to record the scores for each game"""
     id = models.BigAutoField(primary_key=True)
-    game_id = models.ForeignKey(Games, on_delete=models.CASCADE)
-    user_id = models.ForeignKey(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
     base_score = models.SmallIntegerField()
     bonus_score = models.DecimalField(max_digits=6, decimal_places=3)
     total_score = models.DecimalField(max_digits=6, decimal_places=3)
-    time_taken = models.TimeField()
+    time_taken_seconds = models.CharField(max_length=10)
 
     objects = models.Manager()
 
     def __str__(self):
-        return self.total_score
+        return '%s' % self.total_score
